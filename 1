@@ -1,0 +1,62 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Define system parameters
+A = np.array([[0.98, -0.7], [0.1, 0.9]])
+C_single = np.array([[1, 1]])  # Single sensor
+C_multi = np.array([[1, 1], [1, 1]])  # Two sensors
+Q = np.array([[0.2, 0.005], [0.005, 0.001]])
+R_single = np.array([[10]])
+R_multi = np.array([[10, 0], [0, 10]])
+
+def dynamics(x, Q):
+    w = np.random.multivariate_normal([0, 0], Q, 1).T
+    return A @ x + w
+
+def output(x, C, R):
+    v = np.random.multivariate_normal([0]*R.shape[0], R, 1).T
+    return C @ x + v
+
+def kalman_filter(t_sim, C, R, dynamics, output, initial_state):
+    Sigma_pred = 1000 * np.eye(2)
+    x_pred = np.zeros((2, 1))
+    estimates = []
+    x_true = initial_state
+
+    for _ in range(t_sim):
+        x_true = dynamics(x_true, Q)
+        y = output(x_true, C, R)
+        
+        M = C @ Sigma_pred @ C.T + R
+        K = Sigma_pred @ C.T @ np.linalg.inv(M)
+        x_pred = x_pred + K @ (y - C @ x_pred)
+        Sigma_pred = (np.eye(2) - K @ C) @ Sigma_pred
+        
+        x_pred = A @ x_pred
+        Sigma_pred = A @ Sigma_pred @ A.T + Q
+        
+        estimates.append(x_pred.copy())
+    
+    return estimates, x_true
+
+# Initial true state
+initial_state = np.array([[10, 10]]).T
+
+# Run simulations
+estimates_single, true_state_single = kalman_filter(500, C_single, R_single, dynamics, output, initial_state)
+estimates_multi, true_state_multi = kalman_filter(500, C_multi, R_multi, dynamics, output, initial_state)
+
+# Convert to array for plotting
+estimates_single = np.array(estimates_single).squeeze()
+estimates_multi = np.array(estimates_multi).squeeze()
+
+# Plotting
+plt.figure(figsize=(10, 5))
+plt.plot(estimates_single[:, 0], label='Estimate with Single Sensor')
+plt.plot(estimates_multi[:, 0], label='Estimate with Multiple Sensors')
+plt.plot(true_state_single[:, 0], label='True State', linestyle='--')
+plt.xlabel('Time Step')
+plt.ylabel('State Estimate')
+plt.title('Kalman Filter Estimation Comparison')
+plt.legend()
+plt.show()
