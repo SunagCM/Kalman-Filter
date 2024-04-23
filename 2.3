@@ -1,0 +1,33 @@
+import numpy as np
+
+# System matrices
+A = np.array([[0.98, -0.7],
+              [0.1, 0.9]])
+
+# Noise covariances
+Q = np.array([[0.2, 0.005],
+              [0.005, 0.001]])
+R = np.array([[10]])
+
+# Initial predicted covariance
+Sigma_pred = 1000 * np.eye(2)
+
+# Initializing the measurement matrices
+C = np.array([[1, 1]])
+
+# For large number of iterations to observe convergence
+t_sim = 10000
+Sigma_trace = []
+
+for _ in range(t_sim):
+    # Prediction update
+    Sigma_pred = A @ Sigma_pred @ A.T + Q
+    Sigma_trace.append(np.trace(Sigma_pred))
+
+# Check for convergence by examining the trace of the covariance matrix
+if np.all(np.isclose(Sigma_trace[-100:], Sigma_trace[-1], atol=1e-4)):
+    converged = True
+else:
+    converged = False
+
+print(f"Convergence status: {converged}")
